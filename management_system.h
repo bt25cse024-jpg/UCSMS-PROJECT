@@ -23,7 +23,7 @@ typedef struct Customer_type{
     int id;
     char* name;
     int pincode;
-    int contactNo;
+    long long contactNo;
     struct Customer_type* next;
 } Customer;
 
@@ -38,7 +38,7 @@ typedef struct Professional_type{
     int id;
     char* name;
     int pincode;
-    int contactNo;
+    long long contactNo;
     boolean available;
     int services_count;
     Service* service_provided[MAX_PROVIDED_SERVICES];
@@ -56,54 +56,65 @@ typedef struct ServiceRequest_type{
 } ServiceRequest;
 
 typedef struct app_type {
-    int next_cust_id;
-    int next_pro_id;
-    int next_service_id;
-    int next_req_id;
-
     Customer* customer_list;
     Professional* professional_list;
     Service* service_list;
-
     // Service request lists
     ServiceRequest* request_list;
 } app;
 
+// initialization
 void initialize_app(app*);
 
+// size functions
+int getCustomerListSize(app*);
+int getProfessionalListSize(app*);
+int getServiceListSize(app*);
+int getServiceRequestListSize(app*);
 
 // searching functions
 Customer* searchCustomerByDetails(app*, const char*, int);
+Customer* searchCustomerById(app*, int);
+Professional* searchProfessionalByDetails(app* , const char* , int);
+Professional* searchProfessionalById(app*, int);
+Service* searchInProById(Professional*, int);
+Service* searchServiceByDetails(app*, const char*);
+
 // creating customer
-Customer* createCustomer(app*, const char*, int, int);
+Customer* createCustomer(app*, const char*, int, long long);
 status_code Register_Customer(app*);
 // creating professional
 void addServices(app*, Professional*);
-Professional* createProfessional(app*, const char*, int, int);
+Professional* createProfessional(app*, const char*, int, long long);
 status_code Register_Professional(app*);
 // adding new services
 Service* createService(app*, const char*, int);
 status_code Add_Service(app*);
 // creating service request
+void assigneDateTo(Date*);
 Professional* searchProForService(app*, int, int);
-Customer* searchCustomerById(app*, int);
 ServiceRequest* createServiceRequestHelper(app*, Customer*, Service*);
 status_code createServiceRequest(app*);
 
-// service functions
+// service request functions
+void assignProToServiceRequest(app*, Professional*);
 void completeServiceRequest(app*, int);
 void cancelServiceRequest(app*, int);
 
-// searching functions
+// details displaying functions
 void displayProProvidingService(app*, int);
 void displayServicesByPro(app*, int);
 void displayCustomerAllRequests(app*, int);
 
-void displayPendingRequests(app*);
-void displayServicesCompletedByPro(app*, int);
-
 // sorting functions
+void mergeSortForServReqCount(void**, int*, int, int);
+void mergeForServReqCount(void**, int*, int, int, int);
+
 void displayServicesByDecrServiceRequests(app*);
 void displayProfessionalsByDecrServiceCompleted(app*);
+
+// service request displaying functions
+void displayPendingRequests(app*);
+void displayServicesCompletedByPro(app*, int);
 
 #endif
