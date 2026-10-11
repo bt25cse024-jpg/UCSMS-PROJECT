@@ -293,6 +293,9 @@ status_code addServicesToProfessional(app* a){
         sc = Faliure;
     } else {
         addServices(a, p);
+        if(p->available == True){
+            assingProToServiceRequest(a, p);
+        }
     }
 
     return sc;
@@ -470,6 +473,7 @@ ServiceRequest* createServiceRequestHelper(app* a, Customer* customer, Service* 
         if(assigned_professional == NULL){
             newReq->assigned_professional = NULL;
             newReq->status = Pending;
+            printf("No professional available, request is pending\n");
         } else {
             newReq->assigned_professional = assigned_professional;
             newReq->status = Assigned;
