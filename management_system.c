@@ -235,7 +235,7 @@ void addServices(app* a, Professional* p){
         printf("There are no services available yet, please come later.\n");
     } else {
         char choice = 'y';
-        while(choice == 'y' && p->services_count < MAX_PROVIDED_SERVICES){
+        while(choice == 'y' && p->services_count < MAX_PROVIDED_SERVICES && p->services_count < n){
             printf("ID    :    Service    :    Base Price\n");
             Service* curr = a->service_list->next;
 
@@ -264,6 +264,8 @@ void addServices(app* a, Professional* p){
 
                 if(choice == 'y' && p->services_count == MAX_PROVIDED_SERVICES){
                     printf("You have reached the maximum limit of services you can provide.\n");
+                } else if(choice == 'y' && p->services_count == n){
+                    printf("You already provide all the available services.\n");
                 }
 
             } else {
@@ -352,7 +354,10 @@ status_code Register_Professional(app* a){
                 a->professional_list->next = newProfessional;
                 a->professional_list = newProfessional;
             }
+            assignProToServiceRequest(a, newProfessional);
         }
+
+
     } else {
         printf("Professional with name '%s' and pincode '%d' already exists with id '%d'\n", foundProfessional->name, foundProfessional->pincode, foundProfessional->id);
         sc = Faliure;
@@ -497,7 +502,7 @@ status_code createServiceRequest(app* a){
                 printf("Do you want to try again or exit (y/n) : ");
                 char c;
                 scanf(" %c", &c);
-                if(c == 'n'){
+                if(c != 'y'){
                     sc = Faliure;
                 }
             } else {
@@ -566,18 +571,27 @@ void assignProToServiceRequest(app* a, Professional* pro){
     int n = getServiceRequestListSize(a);
     if(n != 0){
         ServiceRequest* curr = a->request_list->next;
+        ServiceRequest* chosen = NULL;
         int found = 0;
         for(int i = 0; i < n && !found; i++){
             if(curr->status == Pending){
                 Service* found_service = searchInProById(pro, curr->service->id);
                 if(found_service != NULL){
-                    curr->assigned_professional = pro;
-                    curr->status = Assigned;
-                    pro->available = False;
-                    found = 1;
+                    if(chosen == NULL){
+                        chosen = curr;
+                    }
+                    if(curr->customer->pincode == pro->pincode){
+                        chosen = curr;
+                        found = 1;
+                    }
                 }
             }
             curr = curr->next;
+        }
+        if(chosen != NULL){
+            chosen->assigned_professional = pro;
+            chosen->status = Assigned;
+            pro->available = False;
         }
     }
 }

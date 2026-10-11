@@ -15,46 +15,56 @@ void loadData(app* a){
     if(fp == NULL){
         printf("loadData: could not open 'sample_data.txt'.\n");
     } else {
-        char name[100];
+        char name[100];     /* big enough to read any word, then cut to NAME_SIZE - 1 */
         int count, i, j, pincode, price, sid, service_count;
         long long contact;
 
-        /* services */
+        /* services: name price */
         if(fscanf(fp, "%d", &count) != 1){
             count = 0;
         }
         for(i = 0; i < count; i++){
             if(fscanf(fp, "%99s %d", name, &price) == 2){
-                Service* s = createService(a, name, price);
-                if(s == NULL){
-                    printf("loadData: could not create service '%s'.\n", name);
-                } else if(a->service_list == NULL){
-                    a->service_list = s;
-                    s->next = s;
+                name[NAME_SIZE - 1] = '\0';
+                if(searchServiceByDetails(a, name) != NULL){
+                    printf("loadData: service '%s' already exists, skipped.\n", name);
                 } else {
-                    s->next = a->service_list->next;
-                    a->service_list->next = s;
-                    a->service_list = s;
+                    Service* s = createService(a, name, price);
+                    if(s == NULL){
+                        printf("loadData: could not create service '%s'.\n", name);
+                    } else if(a->service_list == NULL){
+                        a->service_list = s;
+                        s->next = s;
+                    } else {
+                        s->next = a->service_list->next;
+                        a->service_list->next = s;
+                        a->service_list = s;
+                    }
                 }
             }
         }
 
-        /* customers */
+        /* customers: name pincode contact */
         if(fscanf(fp, "%d", &count) != 1){
             count = 0;
         }
         for(i = 0; i < count; i++){
             if(fscanf(fp, "%99s %d %lld", name, &pincode, &contact) == 3){
-                Customer* c = createCustomer(a, name, pincode, contact);
-                if(c == NULL){
-                    printf("loadData: could not create customer '%s'.\n", name);
-                } else if(a->customer_list == NULL){
-                    a->customer_list = c;
-                    c->next = c;
+                name[NAME_SIZE - 1] = '\0';
+                if(searchCustomerByDetails(a, name, pincode) != NULL){
+                    printf("loadData: customer '%s' with pincode '%d' already exists, skipped.\n", name, pincode);
                 } else {
-                    c->next = a->customer_list->next;
-                    a->customer_list->next = c;
-                    a->customer_list = c;
+                    Customer* c = createCustomer(a, name, pincode, contact);
+                    if(c == NULL){
+                        printf("loadData: could not create customer '%s'.\n", name);
+                    } else if(a->customer_list == NULL){
+                        a->customer_list = c;
+                        c->next = c;
+                    } else {
+                        c->next = a->customer_list->next;
+                        a->customer_list->next = c;
+                        a->customer_list = c;
+                    }
                 }
             }
         }
@@ -65,49 +75,61 @@ void loadData(app* a){
         }
         for(i = 0; i < count; i++){
             if(fscanf(fp, "%99s %d %lld %d", name, &pincode, &contact, &service_count) == 4){
-                Professional* p = (Professional*)malloc(sizeof(Professional));
-                if(p == NULL){
-                    printf("loadData: could not create professional '%s'.\n", name);
+                name[NAME_SIZE - 1] = '\0';
+                int duplicate = (searchProfessionalByDetails(a, name, pincode) != NULL);
+                Professional* p = NULL;
+
+                if(duplicate){
+                    printf("loadData: professional '%s' with pincode '%d' already exists, skipped.\n", name, pincode);
                 } else {
-                    p->id = getProfessionalListSize(a) + 1;
-                    p->name = (char*)malloc(strlen(name) + 1);
-                    if(p->name != NULL){
-                        strcpy(p->name, name);
-                    }
-                    p->pincode = pincode;
-                    p->contactNo = contact;
-                    p->available = True;
-                    p->services_count = 0;
-                    p->next = NULL;
-
-                    int n_services = getServiceListSize(a);
-                    for(j = 0; j < service_count; j++){
-                        if(fscanf(fp, "%d", &sid) == 1){
-                            Service* s = NULL;
-                            if(a->service_list != NULL){
-                                s = a->service_list->next;
-                                for(int k = 0; k < n_services && s->id != sid; k++){
-                                    s = s->next;
-                                }
-                            }
-
-                            if(s == NULL || s->id != sid){
-                                printf("loadData: service id '%d' not found, skipped for '%s'.\n", sid, name);
-                            } else if(searchInProById(p, sid) != NULL){
-                                printf("loadData: service id '%d' repeated for '%s', skipped.\n", sid, name);
-                            } else if(p->services_count >= MAX_PROVIDED_SERVICES){
-                                printf("loadData: '%s' already has %d services, service id '%d' skipped.\n", name, MAX_PROVIDED_SERVICES, sid);
-                            } else {
-                                p->service_provided[p->services_count] = s;
-                                p->services_count++;
-                            }
+                    p = (Professional*)malloc(sizeof(Professional));
+                    if(p != NULL){
+                        p->name = (char*)malloc(strlen(name) + 1);
+                        if(p->name == NULL){
+                            free(p);
+                            p = NULL;
                         }
                     }
-
-                    if(p->name == NULL){
+                    if(p == NULL){
                         printf("loadData: could not create professional '%s'.\n", name);
-                        free(p);
-                    } else if(a->professional_list == NULL){
+                    } else {
+                        p->id = getProfessionalListSize(a) + 1;
+                        strcpy(p->name, name);
+                        p->pincode = pincode;
+                        p->contactNo = contact;
+                        p->available = True;
+                        p->services_count = 0;
+                        p->next = NULL;
+                    }
+                }
+
+                /* the service ids are always read, so the next line is read correctly */
+                int n_services = getServiceListSize(a);
+                for(j = 0; j < service_count; j++){
+                    if(fscanf(fp, "%d", &sid) == 1 && p != NULL){
+                        Service* s = NULL;
+                        if(a->service_list != NULL){
+                            s = a->service_list->next;
+                            for(int k = 0; k < n_services && s->id != sid; k++){
+                                s = s->next;
+                            }
+                        }
+
+                        if(s == NULL || s->id != sid){
+                            printf("loadData: service id '%d' not found, skipped for '%s'.\n", sid, name);
+                        } else if(searchInProById(p, sid) != NULL){
+                            printf("loadData: service id '%d' repeated for '%s', skipped.\n", sid, name);
+                        } else if(p->services_count >= MAX_PROVIDED_SERVICES){
+                            printf("loadData: '%s' already has 5 services, service id '%d' skipped.\n", name, sid);
+                        } else {
+                            p->service_provided[p->services_count] = s;
+                            p->services_count++;
+                        }
+                    }
+                }
+
+                if(p != NULL){
+                    if(a->professional_list == NULL){
                         a->professional_list = p;
                         p->next = p;
                     } else {
@@ -122,6 +144,7 @@ void loadData(app* a){
         fclose(fp);
     }
 }
+
 
 void freeAll(app* a){
     if(a->customer_list != NULL){
@@ -262,7 +285,11 @@ int main(){
             scanf("%d", &id);
             displayServicesCompletedByPro(&a, id);
         } else if(choice == 14){
-            loadData(&a);
+            if(a.customer_list == NULL && a.professional_list == NULL && a.service_list == NULL && a.request_list == NULL){
+                loadData(&a);
+            } else {
+                printf("Sample data can only be loaded once, on an empty system.\n");
+            }
         } else if(choice == 15){
             showAllDetails(&a);
         } else if(choice == 16){
@@ -278,3 +305,4 @@ int main(){
     printf("Goodbye.\n");
     return 0;
 }
+
