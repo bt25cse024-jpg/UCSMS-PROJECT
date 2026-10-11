@@ -12,72 +12,110 @@ void showAllDetails(app* a){
 
 void loadData(app* a){
     FILE* fp = fopen("sample_data.txt", "r");
-    if(fp != NULL){
+    if(fp == NULL){
+        printf("loadData: could not open 'sample_data.txt'.\n");
+    } else {
         char name[100];
         int count, i, j, pincode, price, sid, service_count;
         long long contact;
 
         /* services */
-        fscanf(fp, "%d", &count);
+        if(fscanf(fp, "%d", &count) != 1){
+            count = 0;
+        }
         for(i = 0; i < count; i++){
-            fscanf(fp, "%s %d", name, &price);
-            Service* s = createService(a, name, price);
-            if(a->service_list == NULL){
-                a->service_list = s;
-                s->next = s;
-            } else {
-                s->next = a->service_list->next;
-                a->service_list->next = s;
-                a->service_list = s;
+            if(fscanf(fp, "%99s %d", name, &price) == 2){
+                Service* s = createService(a, name, price);
+                if(s == NULL){
+                    printf("loadData: could not create service '%s'.\n", name);
+                } else if(a->service_list == NULL){
+                    a->service_list = s;
+                    s->next = s;
+                } else {
+                    s->next = a->service_list->next;
+                    a->service_list->next = s;
+                    a->service_list = s;
+                }
             }
         }
 
         /* customers */
-        fscanf(fp, "%d", &count);
+        if(fscanf(fp, "%d", &count) != 1){
+            count = 0;
+        }
         for(i = 0; i < count; i++){
-            fscanf(fp, "%s %d %lld", name, &pincode, &contact);
-            Customer* c = createCustomer(a, name, pincode, contact);
-            if(a->customer_list == NULL){
-                a->customer_list = c;
-                c->next = c;
-            } else {
-                c->next = a->customer_list->next;
-                a->customer_list->next = c;
-                a->customer_list = c;
+            if(fscanf(fp, "%99s %d %lld", name, &pincode, &contact) == 3){
+                Customer* c = createCustomer(a, name, pincode, contact);
+                if(c == NULL){
+                    printf("loadData: could not create customer '%s'.\n", name);
+                } else if(a->customer_list == NULL){
+                    a->customer_list = c;
+                    c->next = c;
+                } else {
+                    c->next = a->customer_list->next;
+                    a->customer_list->next = c;
+                    a->customer_list = c;
+                }
             }
         }
 
         /* professionals: name pincode contact service_count service_ids */
-        fscanf(fp, "%d", &count);
+        if(fscanf(fp, "%d", &count) != 1){
+            count = 0;
+        }
         for(i = 0; i < count; i++){
-            fscanf(fp, "%s %d %lld %d", name, &pincode, &contact, &service_count);
+            if(fscanf(fp, "%99s %d %lld %d", name, &pincode, &contact, &service_count) == 4){
+                Professional* p = (Professional*)malloc(sizeof(Professional));
+                if(p == NULL){
+                    printf("loadData: could not create professional '%s'.\n", name);
+                } else {
+                    p->id = getProfessionalListSize(a) + 1;
+                    p->name = (char*)malloc(strlen(name) + 1);
+                    if(p->name != NULL){
+                        strcpy(p->name, name);
+                    }
+                    p->pincode = pincode;
+                    p->contactNo = contact;
+                    p->available = True;
+                    p->services_count = 0;
+                    p->next = NULL;
 
-            Professional* p = (Professional*)malloc(sizeof(Professional));
-            p->id = i + 1;
-            p->name = (char*)malloc(strlen(name) + 1);
-            strcpy(p->name, name);
-            p->pincode = pincode;
-            p->contactNo = contact;
-            p->available = True;
-            p->services_count = 0;
+                    int n_services = getServiceListSize(a);
+                    for(j = 0; j < service_count; j++){
+                        if(fscanf(fp, "%d", &sid) == 1){
+                            Service* s = NULL;
+                            if(a->service_list != NULL){
+                                s = a->service_list->next;
+                                for(int k = 0; k < n_services && s->id != sid; k++){
+                                    s = s->next;
+                                }
+                            }
 
-            for(j = 0; j < service_count; j++){
-                fscanf(fp, "%d", &sid);
-                Service* s = a->service_list->next;
-                while(s->id != sid){
-                    s = s->next;
+                            if(s == NULL || s->id != sid){
+                                printf("loadData: service id '%d' not found, skipped for '%s'.\n", sid, name);
+                            } else if(searchInProById(p, sid) != NULL){
+                                printf("loadData: service id '%d' repeated for '%s', skipped.\n", sid, name);
+                            } else if(p->services_count >= MAX_PROVIDED_SERVICES){
+                                printf("loadData: '%s' already has %d services, service id '%d' skipped.\n", name, MAX_PROVIDED_SERVICES, sid);
+                            } else {
+                                p->service_provided[p->services_count] = s;
+                                p->services_count++;
+                            }
+                        }
+                    }
+
+                    if(p->name == NULL){
+                        printf("loadData: could not create professional '%s'.\n", name);
+                        free(p);
+                    } else if(a->professional_list == NULL){
+                        a->professional_list = p;
+                        p->next = p;
+                    } else {
+                        p->next = a->professional_list->next;
+                        a->professional_list->next = p;
+                        a->professional_list = p;
+                    }
                 }
-                p->service_provided[p->services_count] = s;
-                p->services_count++;
-            }
-
-            if(a->professional_list == NULL){
-                a->professional_list = p;
-                p->next = p;
-            } else {
-                p->next = a->professional_list->next;
-                a->professional_list->next = p;
-                a->professional_list = p;
             }
         }
 
