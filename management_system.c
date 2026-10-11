@@ -294,7 +294,7 @@ status_code addServicesToProfessional(app* a){
     } else {
         addServices(a, p);
         if(p->available == True){
-            assingProToServiceRequest(a, p);
+            assignProToServiceRequest(a, p);
         }
     }
 
