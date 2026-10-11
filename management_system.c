@@ -228,6 +228,7 @@ status_code Register_Customer(app* a){
 
 // creating professional
 
+
 void addServices(app* a, Professional* p){
     int n = getServiceListSize(a);
     if(n == 0){
@@ -271,6 +272,28 @@ void addServices(app* a, Professional* p){
             }
         }
     }
+}
+
+status_code addServicesToProfessional(app* a){
+    status_code sc = Success;
+    int professional_id;
+
+    printf("Enter professional id : ");
+    scanf("%d", &professional_id);
+
+    Professional* p = searchProfessionalById(a, professional_id);
+
+    if(p == NULL){
+        printf("Professional with id '%d' does not exist.\n", professional_id);
+        sc = Faliure;
+    } else if(p->services_count == MAX_PROVIDED_SERVICES){
+        printf("Professional '%s' already provides the maximum of %d services.\n", p->name, MAX_PROVIDED_SERVICES);
+        sc = Faliure;
+    } else {
+        addServices(a, p);
+    }
+
+    return sc;
 }
 
 Professional* createProfessional(app* a, const char* name, int pincode, long long contactNo){
@@ -446,6 +469,7 @@ ServiceRequest* createServiceRequestHelper(app* a, Customer* customer, Service* 
             newReq->assigned_professional = assigned_professional;
             newReq->status = Assigned;
             assigned_professional->available = False;
+            printf("Assigned Professional to your request is '%s', id '%d', contact no. '%lld'\n", assigned_professional->name, assigned_professional->id, assigned_professional->contactNo);
         }
         newReq->next = NULL;
     }
@@ -706,6 +730,8 @@ void displayCustomerAllRequests(app* a, int customer_id){
     }
 }
 
+// sorting functions
+
 void mergeForServReqCount(void** service_request_arr, int* service_request_count, int left, int mid, int right){
     int i = left;
     int j = mid + 1;
@@ -831,6 +857,8 @@ void displayProfessionalsByDecrServiceCompleted(app* a){
     }
 }
 
+// service request displaying functions
+
 void displayPendingRequests(app* a){
     int req_size = getServiceRequestListSize(a);
     if(req_size != 0){
@@ -876,3 +904,65 @@ void displayServicesCompletedByPro(app* a, int pro_id){
         printf("No service requests found.\n");
     }
 }
+
+// details displaying functions
+
+void displayAllCustomers(app* a){
+    int n = getCustomerListSize(a);
+    printf("\n=== CUSTOMERS (%d) ===\n", n);
+    if(n != 0){
+        Customer* c = a->customer_list->next;
+        printf("id    |    name    |    pincode    |    contact number\n");
+        for(int i = 0; i < n; i++){
+            printf("%d    |    %s    |    %d    |    %lld\n", c->id, c->name, c->pincode, c->contactNo);
+            c = c->next;
+        }
+    }
+}
+
+void displayAllProfessionals(app* a){
+    int n = getProfessionalListSize(a);
+    printf("\n=== PROFESSIONALS (%d) ===\n", n);
+    if(n != 0){
+        Professional* p = a->professional_list->next;
+        printf("id    |    name    |    pincode    |    availability    |    services\n");  
+        for(int i = 0; i < n; i++){
+            printf("%d    |    %s    |    %d    |    %s    |", p->id, p->name, p->pincode, p->available == True ? "available" : "busy");
+            for(int j = 0; j < p->services_count; j++){
+                printf(" %d", p->service_provided[j]->id);
+            }
+            p = p->next;
+            printf("\n");
+        }
+    }
+}
+
+void displayAllServices(app* a){
+    int n = getServiceListSize(a);
+    printf("\n=== SERVICES (%d) ===\n", n);
+    if(n != 0){
+        Service* s = a->service_list->next;
+        printf("id    |    name    |    base price\n"); 
+        for(int i = 0; i < n; i++){
+            printf("%d    |    %s    |    %d\n", s->id, s->name, s->best_price);
+            s = s->next;
+        }
+    }
+}
+
+void displayAllServiceRequests(app* a){
+    int n = getServiceRequestListSize(a);
+    printf("\n=== SERVICE REQUESTS (%d) ===\n", n);
+    if(n != 0){
+        ServiceRequest* r = a->request_list->next;
+        printf("id    |    customer id    |    service id    |    professional id    |    status\n");
+        for(int i = 0; i < n; i++){
+            printf("%d     |    %d    |    %d    |    %d    |     %s\n",
+                   r->id, r->customer->id, r->service->id,
+                   r->assigned_professional != NULL ? r->assigned_professional->id : 0,
+                   getStatus(r->status));
+            r = r->next;
+        }
+    }   
+}
+

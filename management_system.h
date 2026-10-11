@@ -85,6 +85,7 @@ Customer* createCustomer(app*, const char*, int, long long);
 status_code Register_Customer(app*);
 // creating professional
 void addServices(app*, Professional*);
+status_code addServicesToProfessional(app*);
 Professional* createProfessional(app*, const char*, int, long long);
 status_code Register_Professional(app*);
 // adding new services
@@ -104,6 +105,7 @@ void cancelServiceRequest(app*, int);
 // details displaying functions
 void displayProProvidingService(app*, int);
 void displayServicesByPro(app*, int);
+const char* getStatus(req_status);
 void displayCustomerAllRequests(app*, int);
 
 // sorting functions
@@ -116,5 +118,11 @@ void displayProfessionalsByDecrServiceCompleted(app*);
 // service request displaying functions
 void displayPendingRequests(app*);
 void displayServicesCompletedByPro(app*, int);
+
+// details displaying functions
+void displayAllCustomers(app*);
+void displayAllProfessionals(app*);
+void displayAllServices(app*);  
+void displayAllServiceRequests(app*);
 
 #endif
